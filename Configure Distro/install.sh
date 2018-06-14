@@ -59,7 +59,7 @@ update_system(){
     # multimedia libraries and software
     APT_MULTIMEDIA='ffmpeg libavdevice57 libavfilter6 libfdk-aac1 libfaac0 libmp3lame0 x264 mediainfo'
     # system software
-    APT_SYSTEM='sni-qt pv ttf-mscorefonts-installer'
+    APT_SYSTEM='sni-qt pv dkms ttf-mscorefonts-installer'
 
     if [ $CURRENT_DESKTOP = "KDE" ]; then
         APT_SYSTEM="$APT_SYSTEM kdegraphics-thumbnailers"
@@ -69,8 +69,25 @@ update_system(){
     check_status "\tSYSTEM INITIAL UPDATE - "
 
     apt_upgrade install $APT_USER $APT_DRIVER $APT_COMPAC $APT_FUSE $APT_MULTIMEDIA $APT_SYSTEM &&
-    apt-get -y purge libreoffice-kde
+    apt-get -y purge libreoffice-kde 
     check_status "\tSYSTEM USER PACKAGES INSTALL - "
+}
+
+improve_fonts(){
+    local LOCAL_STATS=0
+    rsync -rPh --chown root --chmod 644 "$SCRIPT_DIR/fonts/" /usr/share/fonts/truetype/ &&
+    fc-cache -fv
+    LOCAL_STATS=$(($LOCAL_STATS + $?))        
+    for user_home in /home/* ; do
+        USER=$(basename $user_home)
+        USER=$(cut -d: -f1 /etc/passwd | grep "$USER")
+        if [ -z "$USER" ]; then continue; fi
+        cp "$SCRIPT_DIR/fonts.conf" "$user_home/.fonts.conf" &&
+        chmod +r "$user_home/.fonts.conf" &&
+        chown "$USER" "$user_home/.fonts.conf"
+        LOCAL_STATS=$(($LOCAL_STATS + $?))        
+    done
+    return $LOCAL_STATS
 }
 
 install_codecs(){
@@ -84,7 +101,8 @@ install_codecs(){
     apt-get -y --allow-unauthenticated install deb-multimedia-keyring -oAcquire::AllowInsecureRepositories=true &&
     apt-get -y update &&
     yes '' | apt-get -y -o DPkg::options::="--force-confdef" -o DPkg::options::="--force-confold" upgrade &&
-    yes '' | apt-get -y -o DPkg::options::="--force-confdef" -o DPkg::options::="--force-confold" dist-upgrade
+    yes '' | apt-get -y -o DPkg::options::="--force-confdef" -o DPkg::options::="--force-confold" dist-upgrade &&
+    yes '' | apt-get -y -o DPkg::options::="--force-confdef" -o DPkg::options::="--force-confold" install libdvdcss2
     check_status "\tDEBIAN MULTIMEDIA CODECS - "
 }
 
@@ -191,6 +209,8 @@ disable_desktop_search | tee -a "$LOG_FILE"
 check_status "\tDISABLE DESKTOP SEARCH - " | tee -a "$LOG_FILE"
 players_protect_segfault | tee -a "$LOG_FILE"
 check_status "\tPLAYERS PROTECT SEGFAULT - " | tee -a "$LOG_FILE"
+improve_fonts | tee -a "$LOG_FILE"
+check_status "\tIMPROVE FONT RENDERING - " | tee -a "$LOG_FILE"
 
 sysctl_tuning | tee -a "$LOG_FILE"
 fs_tuning | tee -a "$LOG_FILE"

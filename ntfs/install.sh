@@ -22,6 +22,7 @@ RequiresMountsFor=/dev
 [Service]
 Type=oneshot
 ExecStart=$DEST_DIR/$SCRIPT_FILE
+RemainAfterExit=yes
 Nice=19
 
 [Install]

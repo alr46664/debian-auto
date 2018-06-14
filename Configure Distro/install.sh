@@ -95,6 +95,7 @@ install_google_chrome(){
     " > "$SOURCE_LIST" &&
     chmod +rx "$SOURCE_LIST" &&
     apt_upgrade install google-chrome-stable &&
+    chattr -i /usr/share/applications/google-chrome.desktop &&
     cp "$SCRIPT_DIR/google-chrome.desktop" /usr/share/applications &&
     chmod +rx /usr/share/applications/google-chrome.desktop &&
     chattr +i /usr/share/applications/google-chrome.desktop

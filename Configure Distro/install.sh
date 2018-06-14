@@ -68,7 +68,8 @@ update_system(){
     apt_upgrade upgrade
     check_status "\tSYSTEM INITIAL UPDATE - "
 
-    apt_upgrade install $APT_USER $APT_DRIVER $APT_COMPAC $APT_FUSE $APT_MULTIMEDIA $APT_SYSTEM
+    apt_upgrade install $APT_USER $APT_DRIVER $APT_COMPAC $APT_FUSE $APT_MULTIMEDIA $APT_SYSTEM &&
+    apt-get -y purge libreoffice-kde
     check_status "\tSYSTEM USER PACKAGES INSTALL - "
 }
 

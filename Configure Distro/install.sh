@@ -73,6 +73,48 @@ update_system(){
     check_status "\tSYSTEM USER PACKAGES INSTALL - "
 }
 
+set_system_auto_update(){
+    local SCRIPT_FILE=/opt/autoupdate.sh
+    local SERVICE_FILE=autoupdate.service
+    local TIMER_FILE=$(basename -s .service $SERVICE_FILE).timer
+    echo '#!/bin/bash
+export DEBIAN_FRONTEND=noninteractive
+apt-get -y clean &&
+apt-get -y update &&
+yes "" | apt-get -y -o DPkg::options::="--force-confdef" -o DPkg::options::="--force-confold" upgrade
+' > "$SCRIPT_FILE" &&
+    chmod +rx "$SCRIPT_FILE" &&
+    echo "
+[Unit]
+Description=Debian AutoUpdater 
+After=network.target local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=$SCRIPT_FILE
+RemainAfterExit=no
+Nice=19
+    " > "/etc/systemd/system/$SERVICE_FILE" &&
+    chmod +r "/etc/systemd/system/$SERVICE_FILE" &&
+    echo "
+[Unit]
+Description=Debian AutoUpdater Timer
+
+[Timer]
+OnBootSec=5min
+OnCalendar=quarterly
+Persistent=yes
+RemainAfterElapse=no
+
+[Install]
+WantedBy=timer.target
+    " > "/etc/systemd/system/$TIMER_FILE" &&
+    chmod +r "/etc/systemd/system/$TIMER_FILE" &&
+    systemctl daemon-reload &&
+    systemctl enable "$TIMER_FILE"
+    check_status "\tSYSTEM AUTOUPDATE SETUP - "
+}
+
 improve_fonts(){
     local LOCAL_STATS=0
     rsync -rPh --chown root --chmod 644 "$SCRIPT_DIR/fonts/" /usr/share/fonts/truetype/ &&
@@ -212,6 +254,7 @@ check_status "\tPLAYERS PROTECT SEGFAULT - " | tee -a "$LOG_FILE"
 improve_fonts | tee -a "$LOG_FILE"
 check_status "\tIMPROVE FONT RENDERING - " | tee -a "$LOG_FILE"
 
+set_system_auto_update | tee -a "$LOG_FILE"
 sysctl_tuning | tee -a "$LOG_FILE"
 fs_tuning | tee -a "$LOG_FILE"
 block_drivers | tee -a "$LOG_FILE"

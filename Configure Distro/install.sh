@@ -159,6 +159,15 @@ fs_tuning(){
     check_status "\tFILESYSTEM TUNING - "
 }
 
+block_drivers(){
+    local BLACKLIST_FILE=/etc/modprobe.d/50-blacklist.conf
+    echo '
+blacklist hid_multitouch
+    ' > "$BLACKLIST_FILE" &&
+    chmod +r "$BLACKLIST_FILE"
+    check_status "\tBLACKLIST PROBLEMATIC DRIVERS - "
+}
+
 cleanup(){
     echo '  Cleaning old not needed packages ... '
     apt-get clean
@@ -176,6 +185,7 @@ install_codecs | tee -a "$LOG_FILE"
 
 install_google_chrome | tee -a "$LOG_FILE"
 
+disable_services | tee -a "$LOG_FILE"
 disable_desktop_search | tee -a "$LOG_FILE"
 check_status "\tDISABLE DESKTOP SEARCH - " | tee -a "$LOG_FILE"
 players_protect_segfault | tee -a "$LOG_FILE"
@@ -183,6 +193,7 @@ check_status "\tPLAYERS PROTECT SEGFAULT - " | tee -a "$LOG_FILE"
 
 sysctl_tuning | tee -a "$LOG_FILE"
 fs_tuning | tee -a "$LOG_FILE"
+block_drivers | tee -a "$LOG_FILE"
 
 cleanup | tee -a "$LOG_FILE"
 echo -e "\n\t======== INSTALLATION REPORT =========\n$STATUS" | tee -a "$LOG_FILE"

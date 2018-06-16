@@ -26,7 +26,7 @@ apt_upgrade(){
     export DEBIAN_FRONTEND=noninteractive
     apt-get -y clean &&
     apt-get -y update &&
-    yes '' | apt-get -y -o DPkg::options::="--force-confdef" -o DPkg::options::="--force-confold" $@
+    apt-get -y -o DPkg::options::="--force-confdef" -o DPkg::options::="--force-confold" $@
 }
 
 #install useful .tools in system
@@ -59,7 +59,7 @@ update_system(){
     # multimedia libraries and software
     APT_MULTIMEDIA='ffmpeg libavdevice57 libavfilter6 libfdk-aac1 libfaac0 libmp3lame0 x264 mediainfo'
     # system software
-    APT_SYSTEM='sni-qt pv dkms ttf-mscorefonts-installer'
+    APT_SYSTEM='sni-qt apt-transport-https pv dkms ttf-mscorefonts-installer'
 
     if [ $CURRENT_DESKTOP = "KDE" ]; then
         APT_SYSTEM="$APT_SYSTEM kdegraphics-thumbnailers"
@@ -81,7 +81,7 @@ set_system_auto_update(){
 export DEBIAN_FRONTEND=noninteractive
 apt-get -y clean &&
 apt-get -y update &&
-yes "" | apt-get -y -o DPkg::options::="--force-confdef" -o DPkg::options::="--force-confold" upgrade
+apt-get -y -o DPkg::options::="--force-confdef" -o DPkg::options::="--force-confold" upgrade
 ' > "$SCRIPT_FILE" &&
     chmod +rx "$SCRIPT_FILE" &&
     echo "
@@ -142,9 +142,9 @@ install_codecs(){
     apt-get -y --allow-unauthenticated update -oAcquire::AllowInsecureRepositories=true &&
     apt-get -y --allow-unauthenticated install deb-multimedia-keyring -oAcquire::AllowInsecureRepositories=true &&
     apt-get -y update &&
-    yes '' | apt-get -y -o DPkg::options::="--force-confdef" -o DPkg::options::="--force-confold" upgrade &&
-    yes '' | apt-get -y -o DPkg::options::="--force-confdef" -o DPkg::options::="--force-confold" dist-upgrade &&
-    yes '' | apt-get -y -o DPkg::options::="--force-confdef" -o DPkg::options::="--force-confold" install libdvdcss2
+    apt-get -y -o DPkg::options::="--force-confdef" -o DPkg::options::="--force-confold" upgrade &&
+    apt-get -y -o DPkg::options::="--force-confdef" -o DPkg::options::="--force-confold" dist-upgrade &&
+    apt-get -y -o DPkg::options::="--force-confdef" -o DPkg::options::="--force-confold" install libdvdcss2
     check_status "\tDEBIAN MULTIMEDIA CODECS - "
 }
 
@@ -161,6 +161,18 @@ install_google_chrome(){
     chmod +rx /usr/share/applications/google-chrome.desktop &&
     chattr +i /usr/share/applications/google-chrome.desktop
     check_status "\tGOOGLE CHROME - "
+}
+
+install_virtualbox(){
+    local SOURCE_LIST='/etc/apt/sources.list.d/virtualbox.list'
+    wget -q -O - https://www.virtualbox.org/download/oracle_vbox_2016.asc | apt-key add - &&
+    echo "
+    deb https://download.virtualbox.org/virtualbox/debian $DEBIAN_CODENAME contrib
+    " > "$SOURCE_LIST" &&
+    chmod +rx "$SOURCE_LIST" &&
+    local VBOX_PKG=$(apt-cache search virtualbox | grep virtualbox | tr -s ' ' | cut -d' ' -f1 | sort -fiur | head -n 1)
+    apt_upgrade install $VBOX_PKG
+    check_status "\tVIRTUALBOX PUEL - "
 }
 
 disable_desktop_search(){
@@ -206,9 +218,13 @@ players_protect_segfault(){
 sysctl_tuning(){
     local SYSCTL_CONF=/etc/sysctl.d/99-desktop.conf
     echo '
-    vm.dirty_background_bytes=31457280
-    vm.dirty_bytes=73400320
-    vm.swappiness=20
+vm.dirty_background_bytes=31457280
+vm.dirty_bytes=73400320
+vm.swappiness=20
+
+net.ipv6.conf.all.disable_ipv6=1
+net.ipv6.conf.default.disable_ipv6=1
+net.ipv6.conf.lo.disable_ipv6=1
     ' > "$SYSCTL_CONF" &&
     chmod +r "$SYSCTL_CONF" &&
     sysctl --system
@@ -232,7 +248,13 @@ blacklist hid_multitouch
 cleanup(){
     echo '  Cleaning old not needed packages ... '
     apt-get clean
-    apt-get autoremove
+    check_status "\tCLEANING APT - " | tee -a "$LOG_FILE"        
+}
+
+defrag_system(){
+    echo '  Defragmenting root dir / ... '
+    e4defrag -v /
+    check_status "\tDEFRAGMENT SYSTEM - " | tee -a "$LOG_FILE"
 }
 
 echo " " | tee "$LOG_FILE"
@@ -260,5 +282,6 @@ fs_tuning | tee -a "$LOG_FILE"
 block_drivers | tee -a "$LOG_FILE"
 
 cleanup | tee -a "$LOG_FILE"
+defrag_system | tee -a "$LOG_FILE"
 echo -e "\n\t======== INSTALLATION REPORT =========\n$STATUS" | tee -a "$LOG_FILE"
 echo -e "\n\tDistribution configuration complete. Have fun :) \n"

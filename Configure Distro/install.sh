@@ -75,7 +75,7 @@ update_system(){
 
 set_system_auto_update(){
     local SCRIPT_FILE=/opt/autoupdate.sh
-    local SERVICE_FILE=autoupdate.service
+    local SERVICE_FILE=$(basename -s .sh $SCRIPT_FILE).service
     local TIMER_FILE=$(basename -s .service $SERVICE_FILE).timer
     echo '#!/bin/bash
 export DEBIAN_FRONTEND=noninteractive
@@ -232,7 +232,10 @@ net.ipv6.conf.lo.disable_ipv6=1
 }
 
 fs_tuning(){
-    sed -i'.bak' -e 's@ / .*@ / noatime,errors=remount-ro,commit=30 0 1@g' /etc/fstab
+    sed -i'.bak' -e 's@ / .*@ / noatime,errors=remount-ro,commit=30 0 1@g' /etc/fstab &&
+    mkdir -p /ramdisk &&
+    chown root:users /ramdisk &&
+    echo 'tmpfs   /ramdisk         tmpfs   nodev,nosuid,size=60%          0  0' >> /etc/fstab
     check_status "\tFILESYSTEM TUNING - "
 }
 

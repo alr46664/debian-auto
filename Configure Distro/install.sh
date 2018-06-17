@@ -49,7 +49,7 @@ install_tools(){
 }
 
 update_system(){
-    APT_USER="aptitude git make gcc rsync youtube-dl smplayer vlc gimp firefox-esr firefox-esr-l10n-pt-br thunderbird thunderbird-l10n-pt-br speedcrunch keepassx libreoffice libreoffice-gtk3 libreoffice-l10n-pt-br xsane sshfs aria2  ghostscript"
+    APT_USER="aptitude git make gcc rsync youtube-dl smplayer vlc gimp firefox-esr firefox-esr-l10n-pt-br thunderbird thunderbird-l10n-pt-br speedcrunch keepassx libreoffice libreoffice-gtk3 libreoffice-l10n-pt-br xsane sshfs aria2  ghostscript zsh fish"
     # drivers
     APT_DRIVER='xserver-xorg-input-synaptics xserver-xorg-input-mouse firmware-realtek firmware-atheros firmware-ipw2x00 firmware-intel-sound intel-microcode amd64-microcode'
     # compression software
@@ -59,18 +59,33 @@ update_system(){
     # multimedia libraries and software
     APT_MULTIMEDIA='ffmpeg libavdevice57 libavfilter6 libfdk-aac1 libfaac0 libmp3lame0 x264 mediainfo'
     # system software
-    APT_SYSTEM='sni-qt apt-transport-https pv dkms ttf-mscorefonts-installer'
+    APT_SYSTEM='sni-qt apt-transport-https command-not-found net-tools pv dkms ttf-mscorefonts-installer'
 
     if [ $CURRENT_DESKTOP = "KDE" ]; then
         APT_SYSTEM="$APT_SYSTEM kdegraphics-thumbnailers"
     fi
 
-    apt_upgrade upgrade
+    apt_upgrade upgrade  
     check_status "\tSYSTEM INITIAL UPDATE - "
 
-    apt_upgrade install $APT_USER $APT_DRIVER $APT_COMPAC $APT_FUSE $APT_MULTIMEDIA $APT_SYSTEM &&
+    apt_upgrade install $APT_USER $APT_DRIVER $APT_COMPAC $APT_FUSE $APT_MULTIMEDIA $APT_SYSTEM &&    
+    update-command-not-found &&
     apt-get -y purge libreoffice-kde 
     check_status "\tSYSTEM USER PACKAGES INSTALL - "
+}
+
+set_profile_aliases(){
+    local PROFILE_ALIAS='/etc/profile.d/alias.sh'
+    echo '#!/bin/bash
+alias cd..="cd .."
+alias cd.="cd."
+alias ll="ls -l"
+alias la="ls -la"
+alias cnf="command-not-found"
+alias sed="sed -r"
+    ' > "$PROFILE_ALIAS" &&
+    chmod +rx "$PROFILE_ALIAS"
+    check_status "\tSET PROFILE GLOBAL ALIASES - "
 }
 
 set_system_auto_update(){
@@ -81,6 +96,7 @@ set_system_auto_update(){
 export DEBIAN_FRONTEND=noninteractive
 apt-get -y clean &&
 apt-get -y update &&
+update-command-not-found &&
 apt-get -y -o DPkg::options::="--force-confdef" -o DPkg::options::="--force-confold" upgrade
 ' > "$SCRIPT_FILE" &&
     chmod +rx "$SCRIPT_FILE" &&
@@ -215,16 +231,18 @@ players_protect_segfault(){
     return $LOCAL_STATS
 }
 
+set_kernel_boot_options(){
+    local BOOT_OPTIONS='ipv6.disable=1'
+    sed -r -i'.bak' -e 's/GRUB_CMDLINE_LINUX_DEFAULT="(.*)"/GRUB_CMDLINE_LINUX_DEFAULT="\1 '"$BOOT_OPTIONS"'"/' -e 's/( '"$BOOT_OPTIONS"')+/ '"$BOOT_OPTIONS"'/g' /etc/default/grub 
+    check_status "\tKERNEL BOOT OPTIONS - "
+}
+
 sysctl_tuning(){
     local SYSCTL_CONF=/etc/sysctl.d/99-desktop.conf
     echo '
 vm.dirty_background_bytes=31457280
 vm.dirty_bytes=73400320
 vm.swappiness=20
-
-net.ipv6.conf.all.disable_ipv6=1
-net.ipv6.conf.default.disable_ipv6=1
-net.ipv6.conf.lo.disable_ipv6=1
     ' > "$SYSCTL_CONF" &&
     chmod +r "$SYSCTL_CONF" &&
     sysctl --system
@@ -271,7 +289,9 @@ install_codecs | tee -a "$LOG_FILE"
 
 install_google_chrome | tee -a "$LOG_FILE"
 
+set_profile_aliases | tee -a "$LOG_FILE"
 disable_services | tee -a "$LOG_FILE"
+
 disable_desktop_search | tee -a "$LOG_FILE"
 check_status "\tDISABLE DESKTOP SEARCH - " | tee -a "$LOG_FILE"
 players_protect_segfault | tee -a "$LOG_FILE"
@@ -280,6 +300,7 @@ improve_fonts | tee -a "$LOG_FILE"
 check_status "\tIMPROVE FONT RENDERING - " | tee -a "$LOG_FILE"
 
 set_system_auto_update | tee -a "$LOG_FILE"
+set_kernel_boot_options | tee -a "$LOG_FILE"
 sysctl_tuning | tee -a "$LOG_FILE"
 fs_tuning | tee -a "$LOG_FILE"
 block_drivers | tee -a "$LOG_FILE"

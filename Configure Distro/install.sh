@@ -49,7 +49,7 @@ install_tools(){
 }
 
 update_system(){
-    APT_USER="aptitude git make gcc rsync youtube-dl smplayer vlc gimp firefox-esr firefox-esr-l10n-pt-br thunderbird thunderbird-l10n-pt-br speedcrunch keepassx libreoffice libreoffice-gtk3 libreoffice-l10n-pt-br xsane sshfs aria2  ghostscript zsh fish"
+    APT_USER="aptitude git make gcc rsync youtube-dl smplayer vlc gimp firefox-esr firefox-esr-l10n-pt-br thunderbird thunderbird-l10n-pt-br speedcrunch keepassx libreoffice libreoffice-gtk3 libreoffice-l10n-pt-br xsane sshfs aria2  ghostscript fish"
     # drivers
     APT_DRIVER='xserver-xorg-input-synaptics xserver-xorg-input-mouse firmware-realtek firmware-atheros firmware-ipw2x00 firmware-intel-sound intel-microcode amd64-microcode'
     # compression software
@@ -59,7 +59,7 @@ update_system(){
     # multimedia libraries and software
     APT_MULTIMEDIA='ffmpeg libavdevice57 libavfilter6 libfdk-aac1 libfaac0 libmp3lame0 x264 mediainfo'
     # system software
-    APT_SYSTEM='sni-qt apt-transport-https command-not-found net-tools pv dkms ttf-mscorefonts-installer'
+    APT_SYSTEM='sni-qt apt-transport-https command-not-found net-tools dnsutils pv dkms ttf-mscorefonts-installer'
 
     if [ $CURRENT_DESKTOP = "KDE" ]; then
         APT_SYSTEM="$APT_SYSTEM kdegraphics-thumbnailers"

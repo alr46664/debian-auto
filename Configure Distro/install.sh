@@ -55,7 +55,7 @@ update_system(){
     # compression software
     APT_COMPAC='rar unrar p7zip gzip lzip zip pigz'
     # fuse and filesystems
-    APT_FUSE='libfsntfs-utils libfsntfs1 cryptsetup exfat-utils exfat-fuse gparted'
+    APT_FUSE='libfsntfs-utils libfsntfs1 cryptsetup exfat-utils exfat-fuse gparted mdadm dmsetup lvm2'
     # multimedia libraries and software
     APT_MULTIMEDIA='ffmpeg libavdevice57 libavfilter6 libfdk-aac1 libfaac0 libmp3lame0 x264 mediainfo'
     # system software
@@ -202,7 +202,11 @@ disable_desktop_search(){
 }
 
 disable_services(){
-    systemctl disable bluetooth.service rsync.service
+    local SERVICES='bluetooth.service rsync.service unattended-upgrades.service ModemManager.service'
+    echo 'DisableAutoSpawn' >> /etc/speech-dispatcher/speechd.conf
+    for service in $SERVICES; done
+        systemctl disable "$service"
+    done
     check_status "\tDISABLE NOT USED SERVICES - "
 }
 

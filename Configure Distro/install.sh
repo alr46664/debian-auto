@@ -59,7 +59,7 @@ update_system(){
     # multimedia libraries and software
     APT_MULTIMEDIA='ffmpeg libavdevice57 libavfilter6 libfdk-aac1 libfaac0 libmp3lame0 x264 mediainfo'
     # system software
-    APT_SYSTEM='sni-qt apt-transport-https command-not-found net-tools dnsutils pv dkms ttf-mscorefonts-installer'
+    APT_SYSTEM='sni-qt apt-transport-https command-not-found net-tools nmap dnsutils pv dkms ttf-mscorefonts-installer'
 
     if [ $CURRENT_DESKTOP = "KDE" ]; then
         APT_SYSTEM="$APT_SYSTEM kdegraphics-thumbnailers"

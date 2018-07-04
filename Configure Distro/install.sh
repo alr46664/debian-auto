@@ -55,7 +55,7 @@ update_system(){
     # compression software
     APT_COMPAC='rar unrar p7zip gzip lzip zip pigz'
     # fuse and filesystems
-    APT_FUSE='libfsntfs-utils libfsntfs1 cryptsetup exfat-utils exfat-fuse btrfs-progs btrfs-tools gparted mtools mdadm dmsetup lvm2 smartmontools'
+    APT_FUSE='libfsntfs-utils libfsntfs1 cryptsetup exfat-utils exfat-fuse btrfs-progs btrfs-tools gparted mtools mdadm dmsetup lvm2'
     # multimedia libraries and software
     APT_MULTIMEDIA='ffmpeg libavdevice57 libavfilter6 libfdk-aac1 libfaac0 libmp3lame0 x264 mediainfo'
     # system software
@@ -77,6 +77,7 @@ update_system(){
 
 set_email_agent(){
     local SSMTP_CONF=/etc/ssmtp/ssmtp.conf
+    local REVALIASES_CONF=/etc/ssmtp/revaliases
     local FROM_ADDR=''
     local USERNAME=''
     local PASSWORD=''
@@ -110,18 +111,27 @@ AuthPass=$PASSWORD
             echo 'UseTLS=YES' >> "$SSMTP_CONF"
         fi        
     ) &&
-    cp /etc/ssmtp/revaliases /etc/ssmtp/revaliases.bak &&
-    echo 'root:'${TO_ADDR}':'${MAILHUB_NOPORT} > /etc/ssmtp/revaliases &&
+    cp "$REVALIASES_CONF" "${REVALIASES_CONF}.bak" &&
+    echo "root:${TO_ADDR}:${MAILHUB_NOPORT}" > "$REVALIASES_CONF" &&
     #check_status "\tSET EMAIL SMTP AGENT - "
     echo ok
 }
 
 set_smartd_monitor(){
     local SERVICE=smartd.service
+    local SMARTD_CONF=/etc/smartd.conf
+    apt-get -y install smartmontools &&
     systemctl stop "$SERVICE" 
     sed -i'.bak' -e 's@^[# \t]*start_smartd=.*@start_smartd=yes@' -e 's@^[# \t]*smartd_opts=.*@smartd_opts="--interval=1800"@' /etc/default/smartmontools &&
-    cp /etc/smartd.conf /etc/smartd.conf.bak &&
-    echo 'DEVICESCAN -n standby -m root -M exec /usr/share/smartmontools/smartd-runner' > /etc/smartd.conf &&
+    cp "$SMARTD_CONF" "${SMARTD_CONF}.bak" &&
+    echo 'DEVICESCAN -n standby -m root -M exec /usr/share/smartmontools/smartd-runner' > "$SMARTD_CONF" &&
+    mkdir -p "/etc/systemd/system/${SERVICE}.d" &&
+    echo '
+[Service]
+Restart=on-failure
+Nice=19
+    ' > "/etc/systemd/system/${SERVICE}.d/99-bgprocess.conf" &&
+    systemctl daemon-reload &&
     systemctl enable "$SERVICE" &&
     systemctl restart "$SERVICE" 
     check_status "\tSET SMARTD MONITOR - "

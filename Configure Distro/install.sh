@@ -75,6 +75,15 @@ update_system(){
     check_status "\tSYSTEM USER PACKAGES INSTALL - "
 }
 
+set_unattended_upgrades(){
+    local UNATTENDED_UPGRADES=/etc/apt/apt.conf.d/50unattended-upgrades
+    apt-get -y install unattended-upgrades apt-listchanges &&
+    cp "$UNATTENDED_UPGRADES" "${UNATTENDED_UPGRADES}.bak" &&
+    cp "${SCRIPT_DIR}/50unattended-upgrades" "$UNATTENDED_UPGRADES" &&
+    chmod 644 "$UNATTENDED_UPGRADES"
+    check_status "\tSET UNATTENDED UPGRADES - "
+}
+
 set_email_agent(){
     local SSMTP_CONF=/etc/ssmtp/ssmtp.conf
     local REVALIASES_CONF=/etc/ssmtp/revaliases
@@ -355,6 +364,7 @@ install_tools | tee -a "$LOG_FILE"
 update_system | tee -a "$LOG_FILE"
 set_email_agent | tee -a "$LOG_FILE"
 install_codecs | tee -a "$LOG_FILE"
+set_unattended_upgrades | tee -a "$LOG_FILE"
 
 install_google_chrome | tee -a "$LOG_FILE"
 

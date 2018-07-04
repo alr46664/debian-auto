@@ -55,11 +55,11 @@ update_system(){
     # compression software
     APT_COMPAC='rar unrar p7zip gzip lzip zip pigz'
     # fuse and filesystems
-    APT_FUSE='libfsntfs-utils libfsntfs1 cryptsetup exfat-utils exfat-fuse gparted mdadm dmsetup lvm2'
+    APT_FUSE='libfsntfs-utils libfsntfs1 cryptsetup exfat-utils exfat-fuse btrfs-progs btrfs-tools gparted mtools mdadm dmsetup lvm2 smartmontools'
     # multimedia libraries and software
     APT_MULTIMEDIA='ffmpeg libavdevice57 libavfilter6 libfdk-aac1 libfaac0 libmp3lame0 x264 mediainfo'
     # system software
-    APT_SYSTEM='sni-qt apt-transport-https command-not-found net-tools nmap dnsutils pv dkms ttf-mscorefonts-installer'
+    APT_SYSTEM='sni-qt apt-transport-https command-not-found net-tools nmap dnsutils pv dkms linux-headers-amd64 ttf-mscorefonts-installer'
 
     if [ $CURRENT_DESKTOP = "KDE" ]; then
         APT_SYSTEM="$APT_SYSTEM kdegraphics-thumbnailers"
@@ -68,10 +68,63 @@ update_system(){
     apt_upgrade upgrade  
     check_status "\tSYSTEM INITIAL UPDATE - "
 
+    apt download $APT_USER $APT_DRIVER $APT_COMPAC $APT_FUSE $APT_MULTIMEDIA $APT_SYSTEM &&
     apt_upgrade install $APT_USER $APT_DRIVER $APT_COMPAC $APT_FUSE $APT_MULTIMEDIA $APT_SYSTEM &&    
     update-command-not-found &&
     apt-get -y purge libreoffice-kde 
     check_status "\tSYSTEM USER PACKAGES INSTALL - "
+}
+
+set_email_agent(){
+    local SSMTP_CONF=/etc/ssmtp/ssmtp.conf
+    local FROM_ADDR=''
+    local USERNAME=''
+    local PASSWORD=''
+    local MAILHUB=''
+    local MAILHUB_NOPORT=''
+    local TO_ADDR=''         
+    echo 'Type the SMTP server (domain:port) (for gmail, just type "smtp.gmail.com:465" without quotes): ' &&
+    read MAILHUB &&
+    echo 'Type the SMTP From address (username@domain.com): ' &&
+    read FROM_ADDR &&
+    echo 'Type the password (for security reasons, no output will be shown): ' &&
+    read -s PASSWORD &&
+    echo 'Type the destination address (someone@domain) for ROOT user: ' &&
+    read TO_ADDR &&
+    USERNAME=${FROM_ADDR%%@*} &&
+    MAILHUB_PORT=$(echo $MAILHUB | grep -o -P '[0-9]+$' ) &&
+    MAILHUB_NOPORT=${MAILHUB%%:*} &&
+    apt-get -y purge exim4-base exim4-config exim4-daemon-light mailutils &&
+    apt-get -y install ssmtp bsd-mailx &&
+    cp "$SSMTP_CONF" "${SSMTP_CONF}.bak" &&
+    echo "
+FromLineOverride=yes
+mailhub=$MAILHUB
+root=$FROM_ADDR
+AuthUser=$USERNAME
+AuthPass=$PASSWORD
+    " > "$SSMTP_CONF" && (        
+        if [[ "$MAILHUB_PORT" == 587 ]]; then
+            echo 'UseSTARTTLS=YES' >> "$SSMTP_CONF"
+        elif [[ "$MAILHUB_PORT" == 465 ]]; then
+            echo 'UseTLS=YES' >> "$SSMTP_CONF"
+        fi        
+    ) &&
+    cp /etc/ssmtp/revaliases /etc/ssmtp/revaliases.bak &&
+    echo 'root:'${TO_ADDR}':'${MAILHUB_NOPORT} > /etc/ssmtp/revaliases &&
+    #check_status "\tSET EMAIL SMTP AGENT - "
+    echo ok
+}
+
+set_smartd_monitor(){
+    local SERVICE=smartd.service
+    systemctl stop "$SERVICE" 
+    sed -i'.bak' -e 's@^[# \t]*start_smartd=.*@start_smartd=yes@' -e 's@^[# \t]*smartd_opts=.*@smartd_opts="--interval=1800"@' /etc/default/smartmontools &&
+    cp /etc/smartd.conf /etc/smartd.conf.bak &&
+    echo 'DEVICESCAN -n standby -m root -M exec /usr/share/smartmontools/smartd-runner' > /etc/smartd.conf &&
+    systemctl enable "$SERVICE" &&
+    systemctl restart "$SERVICE" 
+    check_status "\tSET SMARTD MONITOR - "
 }
 
 set_profile_aliases(){
@@ -271,8 +324,9 @@ blacklist hid_multitouch
 }
 
 cleanup(){
-    echo '  Cleaning old not needed packages ... '
-    apt-get clean
+    echo '  Cleaning old not needed packages ... ' &&
+    apt-get clean &&
+    apt-get autoremove 
     check_status "\tCLEANING APT - " | tee -a "$LOG_FILE"        
 }
 
@@ -289,6 +343,7 @@ echo "  $(date)    " | tee -a "$LOG_FILE"
 echo " " | tee -a "$LOG_FILE"
 install_tools | tee -a "$LOG_FILE"
 update_system | tee -a "$LOG_FILE"
+set_email_agent | tee -a "$LOG_FILE"
 install_codecs | tee -a "$LOG_FILE"
 
 install_google_chrome | tee -a "$LOG_FILE"
@@ -303,6 +358,7 @@ check_status "\tPLAYERS PROTECT SEGFAULT - " | tee -a "$LOG_FILE"
 improve_fonts | tee -a "$LOG_FILE"
 check_status "\tIMPROVE FONT RENDERING - " | tee -a "$LOG_FILE"
 
+set_smartd_monitor | tee -a "$LOG_FILE"
 set_system_auto_update | tee -a "$LOG_FILE"
 set_kernel_boot_options | tee -a "$LOG_FILE"
 sysctl_tuning | tee -a "$LOG_FILE"

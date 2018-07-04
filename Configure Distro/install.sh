@@ -76,11 +76,20 @@ update_system(){
 }
 
 set_unattended_upgrades(){
-    local UNATTENDED_UPGRADES=/etc/apt/apt.conf.d/50unattended-upgrades
-    apt-get -y install unattended-upgrades apt-listchanges &&
-    cp "$UNATTENDED_UPGRADES" "${UNATTENDED_UPGRADES}.bak" &&
-    cp "${SCRIPT_DIR}/50unattended-upgrades" "$UNATTENDED_UPGRADES" &&
-    chmod 644 "$UNATTENDED_UPGRADES"
+    local APT_CONF_D=/etc/apt/apt.conf.d/
+    local STATUS_LOCAL=0
+    apt-get -y install unattended-upgrades apt-listchanges 
+    if [ $? -eq 0 ]; then
+        for var in 50unattended-upgrades 20auto-upgrades; do
+            cp "${APT_CONF_D}/${var}" "${APT_CONF_D}/${var}.bak" &&
+            cp "${SCRIPT_DIR}/${var}" "$APT_CONF_D" &&
+            chmod 644 "${APT_CONF_D}/${var}"
+            STATUS_LOCAL+=$?
+        done
+    else
+        STATUS_LOCAL=1
+    fi
+    ( exit $STATUS_LOCAL )
     check_status "\tSET UNATTENDED UPGRADES - "
 }
 
@@ -238,16 +247,24 @@ install_codecs(){
 
 install_google_chrome(){
     local SOURCE_LIST='/etc/apt/sources.list.d/google-chrome.list'
+    local USERNAME=''
     wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - &&
     echo "
     deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main
     " > "$SOURCE_LIST" &&
     chmod +rx "$SOURCE_LIST" &&
-    apt_upgrade install google-chrome-stable &&
-    chattr -i /usr/share/applications/google-chrome.desktop &&
-    cp "$SCRIPT_DIR/google-chrome.desktop" /usr/share/applications &&
-    chmod +rx /usr/share/applications/google-chrome.desktop &&
-    chattr +i /usr/share/applications/google-chrome.desktop
+    apt_upgrade install google-chrome-stable &&    
+    for user in /home/* ; do
+        USERNAME=$(basename "${user}")
+        if ! grep "$USERNAME" /etc/passwd &> /dev/null; then
+            continue
+        fi        
+        mkdir -p "${user}/.local/share/applications" &&
+        chown "$USERNAME" "${user}/.local" "${user}/.local/share" "${user}/.local/share/applications" &&
+        cp "$SCRIPT_DIR/google-chrome.desktop" "${user}/.local/share/applications" &&
+        chown "$USERNAME" "${user}/.local/share/applications/google-chrome.desktop" &&
+        chmod 644 "${user}/.local/share/applications/google-chrome.desktop"         
+    done    
     check_status "\tGOOGLE CHROME - "
 }
 

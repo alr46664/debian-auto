@@ -85,12 +85,28 @@ set_unattended_upgrades(){
             cp "${SCRIPT_DIR}/${var}" "$APT_CONF_D" &&
             chmod 644 "${APT_CONF_D}/${var}"
             STATUS_LOCAL+=$?
-        done
+        done        
+        STATUS_LOCAL+=$?
     else
         STATUS_LOCAL=1
     fi
     ( exit $STATUS_LOCAL )
     check_status "\tSET UNATTENDED UPGRADES - "
+}
+
+set_send_mail_on_failure(){
+    local STATUS_LOCAL=0
+    for var in "$@"; do
+        mkdir -p "/etc/systemd/system/${var}.d/" &&
+        echo '
+[Unit]
+OnFailure=unit-status-mail@%n.service
+        ' > "/etc/systemd/system/${var}.d/99-failure-send-mail.conf" &&
+        chmod 644 "/etc/systemd/system/${var}.d/99-failure-send-mail.conf"
+        STATUS_LOCAL+=$?
+    done
+    systemctl daemon-reload
+    return $STATUS_LOCAL
 }
 
 set_email_agent(){
@@ -131,8 +147,50 @@ AuthPass=$PASSWORD
     ) &&
     cp "$REVALIASES_CONF" "${REVALIASES_CONF}.bak" &&
     echo "root:${TO_ADDR}:${MAILHUB_NOPORT}" > "$REVALIASES_CONF" &&
-    #check_status "\tSET EMAIL SMTP AGENT - "
-    echo ok
+    check_status "\tSET EMAIL SMTP AGENT - "    
+}
+
+set_email_systemd(){
+    local SCRIPT_FILE=/opt/unit-status-mail.sh
+    local SERVICE_FILE=$(basename -s .sh $SCRIPT_FILE).service
+    echo '#!/bin/bash
+MAILTO="root"
+MAILFROM="unit-status-mailer"
+UNIT=$1
+
+EXTRA=""
+for e in "${@:2}"; do
+  EXTRA+="$e"$'\n'
+done
+
+UNITSTATUS=$(systemctl -l status $UNIT)
+
+sendmail $MAILTO <<EOF
+From:$MAILFROM
+To:$MAILTO
+Subject:Status mail for unit: $UNIT
+
+Status report for unit: $UNIT
+$EXTRA
+
+$UNITSTATUS
+EOF
+
+echo -e "Status mail sent to: $MAILTO for unit: $UNIT"
+    ' > "$SCRIPT_FILE" &&
+    echo "
+[Unit]
+Description=Unit Status Mailer Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=$SCRIPT_FILE %I \"Hostname: %H\" \"Machine ID: %m\" \"Boot ID: %b\"
+    " > "/etc/systemd/system/${SERVICE_FILE}" &&
+    chmod +rx "$SCRIPT_FILE" &&    
+    chmod 644 "/etc/systemd/system/${SERVICE_FILE}" &&
+    systemctl daemon-reload
+    check_status "\tSET EMAIL SYSTEMD SERVICE - "    
 }
 
 set_smartd_monitor(){
@@ -167,49 +225,6 @@ alias sed="sed -r"
     ' > "$PROFILE_ALIAS" &&
     chmod +rx "$PROFILE_ALIAS"
     check_status "\tSET PROFILE GLOBAL ALIASES - "
-}
-
-set_system_auto_update(){
-    local SCRIPT_FILE=/opt/autoupdate.sh
-    local SERVICE_FILE=$(basename -s .sh $SCRIPT_FILE).service
-    local TIMER_FILE=$(basename -s .service $SERVICE_FILE).timer
-    echo '#!/bin/bash
-export DEBIAN_FRONTEND=noninteractive
-apt-get -y clean &&
-apt-get -y update &&
-update-command-not-found &&
-apt-get -y -o DPkg::options::="--force-confdef" -o DPkg::options::="--force-confold" upgrade
-' > "$SCRIPT_FILE" &&
-    chmod +rx "$SCRIPT_FILE" &&
-    echo "
-[Unit]
-Description=Debian AutoUpdater 
-After=network.target local-fs.target
-
-[Service]
-Type=oneshot
-ExecStart=$SCRIPT_FILE
-RemainAfterExit=no
-Nice=19
-    " > "/etc/systemd/system/$SERVICE_FILE" &&
-    chmod +r "/etc/systemd/system/$SERVICE_FILE" &&
-    echo "
-[Unit]
-Description=Debian AutoUpdater Timer
-
-[Timer]
-OnBootSec=5min
-OnCalendar=quarterly
-Persistent=yes
-RemainAfterElapse=no
-
-[Install]
-WantedBy=timer.target
-    " > "/etc/systemd/system/$TIMER_FILE" &&
-    chmod +r "/etc/systemd/system/$TIMER_FILE" &&
-    systemctl daemon-reload &&
-    systemctl enable "$TIMER_FILE"
-    check_status "\tSYSTEM AUTOUPDATE SETUP - "
 }
 
 improve_fonts(){
@@ -380,6 +395,7 @@ echo " " | tee -a "$LOG_FILE"
 install_tools | tee -a "$LOG_FILE"
 update_system | tee -a "$LOG_FILE"
 set_email_agent | tee -a "$LOG_FILE"
+set_email_systemd | tee -a "$LOG_FILE"
 install_codecs | tee -a "$LOG_FILE"
 set_unattended_upgrades | tee -a "$LOG_FILE"
 
@@ -396,7 +412,6 @@ improve_fonts | tee -a "$LOG_FILE"
 check_status "\tIMPROVE FONT RENDERING - " | tee -a "$LOG_FILE"
 
 set_smartd_monitor | tee -a "$LOG_FILE"
-set_system_auto_update | tee -a "$LOG_FILE"
 set_kernel_boot_options | tee -a "$LOG_FILE"
 sysctl_tuning | tee -a "$LOG_FILE"
 fs_tuning | tee -a "$LOG_FILE"

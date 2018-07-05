@@ -45,6 +45,7 @@ install_tools(){
 
      #install ntfs tools
     bash "$NTFS"
+    set_send_mail_on_failure ntfs_mount.service
     check_status "\tNTFS Auto Mounter - "
 }
 
@@ -75,6 +76,12 @@ update_system(){
     check_status "\tSYSTEM USER PACKAGES INSTALL - "
 }
 
+install_backup_script(){
+    cp "${SCRIPT_DIR}/backup.sh" /opt &&
+    chmod +rx /opt/backup.sh
+    check_status "\tBACKUP SCRIPT INSTALL - "    
+}
+
 set_unattended_upgrades(){
     local APT_CONF_D=/etc/apt/apt.conf.d/
     local STATUS_LOCAL=0
@@ -85,7 +92,8 @@ set_unattended_upgrades(){
             cp "${SCRIPT_DIR}/${var}" "$APT_CONF_D" &&
             chmod 644 "${APT_CONF_D}/${var}"
             STATUS_LOCAL+=$?
-        done        
+        done                
+        set_send_mail_on_failure apt-daily.service apt-daily-upgrade.service    
         STATUS_LOCAL+=$?
     else
         STATUS_LOCAL=1
@@ -152,7 +160,7 @@ AuthPass=$PASSWORD
 
 set_email_systemd(){
     local SCRIPT_FILE=/opt/unit-status-mail.sh
-    local SERVICE_FILE=$(basename -s .sh $SCRIPT_FILE).service
+    local SERVICE_FILE=$(basename -s .sh $SCRIPT_FILE)'@.service'
     echo '#!/bin/bash
 MAILTO="root"
 MAILFROM="unit-status-mailer"
@@ -160,7 +168,7 @@ UNIT=$1
 
 EXTRA=""
 for e in "${@:2}"; do
-  EXTRA+="$e"$'\n'
+  EXTRA+="$e"\r\n
 done
 
 UNITSTATUS=$(systemctl -l status $UNIT)
@@ -168,7 +176,7 @@ UNITSTATUS=$(systemctl -l status $UNIT)
 sendmail $MAILTO <<EOF
 From:$MAILFROM
 To:$MAILTO
-Subject:Status mail for unit: $UNIT
+Subject:[${2}] Status mail for unit: $UNIT
 
 Status report for unit: $UNIT
 $EXTRA
@@ -417,6 +425,7 @@ sysctl_tuning | tee -a "$LOG_FILE"
 fs_tuning | tee -a "$LOG_FILE"
 block_drivers | tee -a "$LOG_FILE"
 
+install_backup_script | tee -a "$LOG_FILE"
 cleanup | tee -a "$LOG_FILE"
 defrag_system | tee -a "$LOG_FILE"
 echo -e "\n\t======== INSTALLATION REPORT =========\n$STATUS" | tee -a "$LOG_FILE"

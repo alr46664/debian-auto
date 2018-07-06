@@ -58,7 +58,7 @@ update_system(){
     # compression software
     APT_COMPAC='rar unrar p7zip gzip lzip zip pigz'
     # fuse and filesystems
-    APT_FUSE='libfsntfs-utils libfsntfs1 cryptsetup exfat-utils exfat-fuse btrfs-progs btrfs-tools gparted mtools mdadm dmsetup lvm2'
+    APT_FUSE='libfsntfs-utils libfsntfs1 cryptsetup exfat-utils exfat-fuse btrfs-progs btrfs-tools gparted mtools mdadm dmsetup lvm2 acl'
     # multimedia libraries and software
     APT_MULTIMEDIA='ffmpeg libavdevice57 libavfilter6 libfdk-aac1 libfaac0 libmp3lame0 x264 mediainfo'
     # system software

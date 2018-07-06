@@ -15,11 +15,14 @@ echo "
 [Unit]
 Description=qBittorrent Daemon Service
 After=network.target
+OnFailure=unit-status-mail@%n.service
 
 [Service]
 User=$USER
 ExecStart=/usr/bin/qbittorrent-nox
 ExecStop=/usr/bin/killall -w qbittorrent-nox
+IOSchedulingClass=idle
+CPUSchedulingPolicy=idle
 Nice=19
 
 [Install]

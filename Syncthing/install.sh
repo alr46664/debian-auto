@@ -20,11 +20,14 @@ install_service(){
 [Unit]
 Description=Syncthing Daemon Service
 After=network.target local-fs.target
+OnFailure=unit-status-mail@%n.service
 
 [Service]
 User=$USER
 ExecStart=/usr/bin/syncthing
 ExecStop=/usr/bin/killall -w syncthing
+IOSchedulingClass=idle
+CPUSchedulingPolicy=idle
 Nice=19
 
 [Install]

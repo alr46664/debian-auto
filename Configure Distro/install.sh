@@ -4,6 +4,8 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 CURRENT_DESKTOP="$(env | grep CURRENT_DESKTOP | awk -F = '{print$2}')"
 DEBIAN_CODENAME="$(lsb_release -a | grep -i Codename | cut -d':' -f2 | tr -s ' ' | xargs)"
 
+SYNCTHING="${SCRIPT_DIR}/../Syncthing/install.sh"
+
 # if it's not root, exit!
 [ "$(whoami)" != "root" ] && echo -e "\n\tRUN this script as ROOT. Exiting...\n" && exit 1
 
@@ -171,7 +173,7 @@ for e in "${@:2}"; do
   EXTRA+="$e"\r\n
 done
 
-UNITSTATUS=$(systemctl -l status $UNIT)
+UNITSTATUS=$(journalctl -b -u $UNIT)
 
 sendmail $MAILTO <<EOF
 From:$MAILFROM
@@ -407,6 +409,7 @@ set_email_systemd | tee -a "$LOG_FILE"
 install_codecs | tee -a "$LOG_FILE"
 set_unattended_upgrades | tee -a "$LOG_FILE"
 
+bash "$SYNCTHING" | tee -a "$LOG_FILE"
 install_google_chrome | tee -a "$LOG_FILE"
 
 set_profile_aliases | tee -a "$LOG_FILE"

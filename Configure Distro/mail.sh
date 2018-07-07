@@ -26,21 +26,23 @@ UNIT=$1
 
 EXTRA=""
 for e in "${@:2}"; do
-  EXTRA+="$e"\r\n
+  EXTRA+="${e}\r\n"
 done
 
-UNITSTATUS=$(journalctl -b -u $UNIT)
+UNITSTATUS=$(systemctl status $UNIT)
+UNIT_FULLLOG=$(journalctl -b -u $UNIT)
 
-sendmail $MAILTO <<EOF
-From:$MAILFROM
-To:$MAILTO
-Subject:[${2}] Status mail for unit: $UNIT
-
+echo -e "
 Status report for unit: $UNIT
 $EXTRA
 
 $UNITSTATUS
-EOF
+
+Details:
+
+$UNIT_FULLLOG
+
+" | mail -r "$MAILFROM" -s "[${2}] Status mail for unit: $UNIT" "$MAILTO"
 
 echo -e "Status mail sent to: $MAILTO for unit: $UNIT"
     ' > "$SCRIPT_FILE" &&

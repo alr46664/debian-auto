@@ -4,8 +4,6 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 CURRENT_DESKTOP="$(env | grep CURRENT_DESKTOP | awk -F = '{print$2}')"
 DEBIAN_CODENAME="$(lsb_release -a | grep -i Codename | cut -d':' -f2 | tr -s ' ' | xargs)"
 
-SYNCTHING="${SCRIPT_DIR}/../Syncthing/install.sh"
-
 # if it's not root, exit!
 [ "$(whoami)" != "root" ] && echo -e "\n\tRUN this script as ROOT. Exiting...\n" && exit 1
 
@@ -52,7 +50,7 @@ install_tools(){
 }
 
 update_system(){
-    APT_USER="aptitude git make gcc rsync youtube-dl smplayer vlc gimp firefox-esr firefox-esr-l10n-pt-br thunderbird thunderbird-l10n-pt-br speedcrunch keepassx libreoffice libreoffice-gtk3 libreoffice-l10n-pt-br xsane sshfs aria2  ghostscript fish qbittorrent"
+    APT_USER="aptitude git make gcc rsync youtube-dl smplayer vlc gimp firefox-esr firefox-esr-l10n-pt-br thunderbird thunderbird-l10n-pt-br speedcrunch keepassx libreoffice libreoffice-gtk3 libreoffice-l10n-pt-br xsane sshfs aria2  ghostscript fish bash-builtins qbittorrent"
     # drivers
     APT_DRIVER='xserver-xorg-input-synaptics xserver-xorg-input-mouse firmware-realtek firmware-atheros firmware-ipw2x00 firmware-intel-sound intel-microcode amd64-microcode'
     # compression software
@@ -216,8 +214,9 @@ set_smartd_monitor(){
 [Service]
 Restart=on-failure
 Nice=19
-    ' > "/etc/systemd/system/${SERVICE}.d/99-bgprocess.conf" &&
+    ' > "/etc/systemd/system/${SERVICE}.d/99-bgprocess.conf" &&    
     systemctl daemon-reload &&
+    set_send_mail_on_failure "${SERVICE}" &&
     systemctl enable "$SERVICE" &&
     systemctl restart "$SERVICE" 
     check_status "\tSET SMARTD MONITOR - "
@@ -409,7 +408,6 @@ set_email_systemd | tee -a "$LOG_FILE"
 install_codecs | tee -a "$LOG_FILE"
 set_unattended_upgrades | tee -a "$LOG_FILE"
 
-bash "$SYNCTHING" | tee -a "$LOG_FILE"
 install_google_chrome | tee -a "$LOG_FILE"
 
 set_profile_aliases | tee -a "$LOG_FILE"

@@ -11,6 +11,7 @@ BTRFS_SCRUB=btrfs-scrub
 
 PWD=$(pwd)
 
+cd "${SCRIPT_DIR}/btrfsmaintenance" &&
 apt-get update && apt-get -y install btrfs-progs &&
 ./dist-install.sh &&
 install_service ${BTRFS_BALANCE}.service ${BTRFS_BALANCE}.timer ${BTRFS_SCRUB}.service ${BTRFS_SCRUB}.timer &&

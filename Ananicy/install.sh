@@ -1,14 +1,10 @@
 #!/bin/bash
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-OPENSUSE_AUTO="$SCRIPT_DIR/.."
-UTILITIES="$OPENSUSE_AUTO/Utilities"
-
-ANANICY_SERVICE=/lib/systemd/system/ananicy.service
 
 [ "$(whoami)" != "root" ] && echo -e "\n\tRUN this script as ROOT. Exiting...\n" && exit 1
 
 PWD=$(pwd) 
-zypper -n in schedtool git make gcc autoconf automake &&
+apt-get -y install schedtool git make gcc autoconf automake &&
 cd "$SCRIPT_DIR"/ananicy &&
 make -j4 install &&
 systemctl daemon-reload &&

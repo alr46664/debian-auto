@@ -20,6 +20,8 @@ install_tools(){
     local LUKS="$SCRIPT_DIR/../luks/install.sh"
     local PDF="$SCRIPT_DIR/../pdf/install.sh"
     local NTFS="$SCRIPT_DIR/../ntfs/install.sh"
+    local MINIDLNA="$SCRIPT_DIR/../minidlna/install.sh"
+    local ANANICY="$SCRIPT_DIR/../Ananicy/install.sh"
 
     #install luks tools
     bash "$LUKS"
@@ -33,10 +35,18 @@ install_tools(){
     bash "$NTFS"
     set_send_mail_on_failure ntfs_mount.service
     check_status "\tNTFS Auto Mounter - "
+
+    #install minidlna
+    bash "$MINIDLNA"    
+    check_status "\tMiniDLNA - "
+
+    #install ananicy
+    bash "$ANANICY"    
+    check_status "\tAnanicy - "
 }
 
 update_system(){
-    APT_USER="aptitude git make gcc rsync youtube-dl smplayer vlc gimp firefox-esr firefox-esr-l10n-pt-br thunderbird thunderbird-l10n-pt-br speedcrunch keepassx libreoffice libreoffice-gtk3 libreoffice-l10n-pt-br xsane sshfs aria2  ghostscript fish bash-builtins qbittorrent"
+    APT_USER="aptitude git make gcc rsync youtube-dl smplayer vlc gimp firefox-esr firefox-esr-l10n-pt-br thunderbird thunderbird-l10n-pt-br speedcrunch keepassx libreoffice libreoffice-gtk3 libreoffice-l10n-pt-br xsane sshfs aria2  ghostscript fish bash-builtins qbittorrent unison unison-gtk"
     # drivers
     APT_DRIVER='xserver-xorg-input-synaptics xserver-xorg-input-mouse firmware-realtek firmware-atheros firmware-ipw2x00 firmware-intel-sound intel-microcode amd64-microcode'
     # compression software
@@ -46,7 +56,7 @@ update_system(){
     # multimedia libraries and software
     APT_MULTIMEDIA='ffmpeg libavdevice57 libavfilter6 libfdk-aac1 libfaac0 libmp3lame0 x264 mediainfo'
     # system software
-    APT_SYSTEM='sni-qt apt-transport-https command-not-found net-tools nmap dnsutils pv dkms linux-headers-amd64 ttf-mscorefonts-installer'
+    APT_SYSTEM='sni-qt apt-transport-https command-not-found ssh net-tools nmap dnsutils pv dkms linux-headers-amd64 ttf-mscorefonts-installer'
 
     if [ $CURRENT_DESKTOP = "KDE" ]; then
         APT_SYSTEM="$APT_SYSTEM kdegraphics-thumbnailers"
@@ -58,7 +68,8 @@ update_system(){
     apt download $APT_USER $APT_DRIVER $APT_COMPAC $APT_FUSE $APT_MULTIMEDIA $APT_SYSTEM &&
     apt_upgrade install $APT_USER $APT_DRIVER $APT_COMPAC $APT_FUSE $APT_MULTIMEDIA $APT_SYSTEM &&    
     update-command-not-found &&
-    apt-get -y purge libreoffice-kde 
+    apt-get -y purge libreoffice-kde &&
+    systemctl start sshd
     check_status "\tSYSTEM USER PACKAGES INSTALL - "
 }
 

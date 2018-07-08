@@ -30,5 +30,6 @@ WantedBy=local-fs.target
 " > "/etc/systemd/system/$SERVICE_FILE" &&
 chmod +r "/etc/systemd/system/$SERVICE_FILE" &&
 systemctl daemon-reload &&
-systemctl enable "$SERVICE_FILE"
+systemctl enable "$SERVICE_FILE" &&
+editor "$CONFIG_FILE"
 

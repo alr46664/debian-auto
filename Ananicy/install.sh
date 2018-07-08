@@ -4,6 +4,7 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 [ "$(whoami)" != "root" ] && echo -e "\n\tRUN this script as ROOT. Exiting...\n" && exit 1
 
 PWD=$(pwd) 
+apt-get update &&
 apt-get -y install schedtool git make gcc autoconf automake &&
 cd "$SCRIPT_DIR"/ananicy &&
 make -j4 install &&

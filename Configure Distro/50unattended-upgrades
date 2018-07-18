@@ -42,14 +42,14 @@ Unattended-Upgrade::Origins-Pattern {
 };
 
 // List of packages to not update (regexp are supported)
-Unattended-Upgrade::Package-Blacklist {
+//Unattended-Upgrade::Package-Blacklist {
 //	"vim";
 //	"libc6";
 //	"libc6-dev";
 //	"libc6-i686";
 //        "linux-headers-amd64";
 //        "linux-image-amd64";
-};
+//};
 
 // Restricted List of packages to update (regexp are supported)
 //Unattended-Upgrade::Package-Whitelist {
@@ -103,7 +103,7 @@ Unattended-Upgrade::MailOnlyOnError "true";
 
 // Use apt bandwidth limit feature, this example limits the download
 // speed to 70kb/sec
-Acquire::http::Dl-Limit "700";
+Acquire::http::Dl-Limit "1000";
 
 // Enable logging to syslog. Default is False
 Unattended-Upgrade::SyslogEnable "true";

@@ -102,7 +102,7 @@ set_unattended_upgrades(){
 set_smartd_monitor(){
     local SERVICE=smartd.service
     local SMARTD_CONF=/etc/smartd.conf
-    apt-get -y install smartmontools &&
+    apt-get -y install smartmontools gsmartcontrol &&
     systemctl stop "$SERVICE" 
     sed -i'.bak' -e 's@^[# \t]*start_smartd=.*@start_smartd=yes@' -e 's@^[# \t]*smartd_opts=.*@smartd_opts="--interval=1800"@' /etc/default/smartmontools &&
     cp "$SMARTD_CONF" "${SMARTD_CONF}.bak" &&

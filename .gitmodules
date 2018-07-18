@@ -1,0 +1,3 @@
+[submodule "Ananicy"]
+	path = Ananicy
+	url = git@github.com:alr46664/Ananicy.git

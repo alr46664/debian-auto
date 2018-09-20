@@ -103,7 +103,7 @@ Unattended-Upgrade::MailOnlyOnError "true";
 
 // Use apt bandwidth limit feature, this example limits the download
 // speed to 70kb/sec
-Acquire::http::Dl-Limit "1000";
+Acquire::http::Dl-Limit "1500";
 
 // Enable logging to syslog. Default is False
 Unattended-Upgrade::SyslogEnable "true";

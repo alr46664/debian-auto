@@ -52,7 +52,7 @@ update_system(){
     # compression software
     APT_COMPAC='rar unrar p7zip gzip lzip zip pigz'
     # fuse and filesystems
-    APT_FUSE='libfsntfs-utils libfsntfs1 cryptsetup exfat-utils exfat-fuse btrfs-progs btrfs-tools gparted mtools mdadm dmsetup lvm2 acl'
+    APT_FUSE='libfsntfs-utils libfsntfs1 cryptsetup exfat-utils exfat-fuse btrfs-progs btrfs-tools gparted mtools mdadm dmsetup lvm2 acl sshfs autossh'
     # multimedia libraries and software
     APT_MULTIMEDIA='ffmpeg libavdevice57 libavfilter6 libfdk-aac1 libfaac0 libmp3lame0 x264 mediainfo'
     # system software
@@ -236,8 +236,8 @@ players_protect_segfault(){
         echo "
         #!/bin/bash
         source /etc/profile
-        #set a permanent limit of 2GB
-        ulimit -v 2097152
+        #set a permanent limit of 4GB
+        ulimit -v 4194304
         $player \"\$@\"
         " > "$SCRIPT_FILE" &&
         chmod +rx "$SCRIPT_FILE"

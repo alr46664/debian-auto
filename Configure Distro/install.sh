@@ -92,6 +92,25 @@ set_unattended_upgrades(){
         done                
         set_send_mail_on_failure apt-daily.service apt-daily-upgrade.service    
         STATUS_LOCAL+=$?
+        for var in apt-daily.timer apt-daily-upgrade.timer; do	
+  	   mkdir -p "/etc/systemd/system/${var}.d" &&
+           echo '
+[Timer]
+RandomizedDelaySec=15m
+    ' > "/etc/systemd/system/${var}.d/99-randomness.conf" 
+           STATUS_LOCAL+=$?
+        done    
+        for var in apt-daily.service apt-daily-upgrade.service; do	
+  	   mkdir -p "/etc/systemd/system/${var}.d" &&
+           echo '
+[Unit]
+After=network-online.target
+Wants=network-online.target
+    ' > "/etc/systemd/system/${var}.d/98-conditions.conf" 
+           STATUS_LOCAL+=$?
+        done    
+        systemctl daemon-reload  
+        STATUS_LOCAL+=$?
     else
         STATUS_LOCAL=1
     fi
